@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<!-- UPDATED -->
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HMA Signal Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #080c12;
+    --bg2: #0d1520;
+    --bg3: #111d2e;
+    --border: #1a2d45;
+    --accent: #00d4ff;
+    --accent2: #0088aa;
+    --green: #00ff88;
+    --green2: #00aa55;
+    --red: #ff3355;
+    --red2: #aa1133;
+    --yellow: #ffcc00;
+    --text: #c8d8e8;
+    --text2: #5a7a9a;
+    --mono: 'Space Mono', monospace;
+    --display: 'Syne', sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--mono);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Grid background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,212,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,212,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    position: relative;
+    z-index: 1;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 24px;
+  }
+
+  /* Header */
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 32px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .logo {
+    font-family: var(--display);
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+  }
+
+  .logo span {
+    color: var(--accent);
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+  }
+
+  .status-dot {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    color: var(--text2);
+  }
+
+  .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 8px var(--green);
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  #last-update {
+    font-size: 11px;
+    color: var(--text2);
+  }
+
+  .refresh-btn {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    color: var(--accent);
+    padding: 8px 16px;
+    font-family: var(--mono);
+    font-size: 11px;
+    cursor: pointer;
+    letter-spacing: 1px;
+    transition: all 0.2s;
+  }
+
+  .refresh-btn:hover {
+    background: var(--accent);
+    color: var(--bg);
+  }
+
+  /* Strategy badge */
+  .strategy-bar {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 28px;
+    font-size: 11px;
+    color: var(--text2);
+    letter-spacing: 1px;
+  }
+
+  .badge {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    padding: 4px 10px;
+    color: var(--accent);
+  }
+
+  /* Cards grid */
+  .cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+
+  .card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.3s;
+    animation: fadeIn 0.4s ease forwards;
+    opacity: 0;
+  }
+
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--border);
+    transition: background 0.3s;
+  }
+
+  .card.signal-al::before  { background: var(--green); box-shadow: 0 0 12px var(--green); }
+  .card.signal-sat::before { background: var(--red);   box-shadow: 0 0 12px var(--red); }
+  .card.signal-zayif::before { background: var(--yellow); }
+  .card.signal-al  { border-color: rgba(0,255,136,0.2); }
+  .card.signal-sat { border-color: rgba(255,51,85,0.2); }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 16px;
+  }
+
+  .symbol {
+    font-family: var(--display);
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+  }
+
+  .sinyal-badge {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 3px 8px;
+    letter-spacing: 1.5px;
+    border: 1px solid;
+  }
+
+  .sinyal-AL    { color: var(--green); border-color: var(--green); background: rgba(0,255,136,0.08); }
+  .sinyal-SAT   { color: var(--red);   border-color: var(--red);   background: rgba(255,51,85,0.08); }
+  .sinyal-BEKLE { color: var(--text2); border-color: var(--border); }
+  .sinyal-ZAYIF { color: var(--yellow); border-color: var(--yellow); background: rgba(255,204,0,0.08); }
+
+  .price-row {
+    margin-bottom: 14px;
+  }
+
+  .price {
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: -1px;
+    line-height: 1;
+  }
+
+  .price-change {
+    font-size: 11px;
+    margin-top: 4px;
+  }
+
+  .price-change.up   { color: var(--green); }
+  .price-change.down { color: var(--red); }
+
+  .metrics {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+
+  .metric {
+    background: var(--bg3);
+    padding: 8px 10px;
+  }
+
+  .metric-label {
+    font-size: 9px;
+    color: var(--text2);
+    letter-spacing: 1px;
+    margin-bottom: 3px;
+  }
+
+  .metric-value {
+    font-size: 12px;
+    color: var(--text);
+  }
+
+  .trend-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+  }
+
+  .trend-label { color: var(--text2); }
+
+  .trend-up   { color: var(--green); }
+  .trend-down { color: var(--red); }
+
+  /* Mini sparkline */
+  .sparkline {
+    width: 100%;
+    height: 40px;
+    margin-top: 12px;
+  }
+
+  /* Signal log */
+  .log-section {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    padding: 20px;
+  }
+
+  .log-title {
+    font-family: var(--display);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    color: var(--text2);
+    margin-bottom: 14px;
+  }
+
+  .log-empty {
+    font-size: 12px;
+    color: var(--text2);
+    padding: 12px 0;
+  }
+
+  .log-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 200px;
+    overflow-y: auto;
+  }
+
+  .log-item {
+    display: flex;
+    gap: 12px;
+    font-size: 11px;
+    padding: 8px 12px;
+    background: var(--bg3);
+    border-left: 2px solid var(--border);
+    animation: slideIn 0.3s ease;
+  }
+
+  .log-item.al  { border-left-color: var(--green); }
+  .log-item.sat { border-left-color: var(--red); }
+
+  @keyframes slideIn {
+    from { transform: translateX(-8px); opacity: 0; }
+    to   { transform: translateX(0); opacity: 1; }
+  }
+
+  .log-time   { color: var(--text2); min-width: 60px; }
+  .log-symbol { color: var(--accent); min-width: 50px; font-weight: 700; }
+  .log-signal.al  { color: var(--green); }
+  .log-signal.sat { color: var(--red); }
+  .log-price  { color: var(--text); margin-left: auto; }
+
+  /* Loading */
+  .loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 200px;
+    font-size: 13px;
+    color: var(--text2);
+    letter-spacing: 2px;
+  }
+
+  .loading::after {
+    content: '';
+    animation: dots 1.5s infinite;
+  }
+
+  @keyframes dots {
+    0%   { content: '.'; }
+    33%  { content: '..'; }
+    66%  { content: '...'; }
+  }
+
+  /* Countdown */
+  .countdown-bar {
+    height: 2px;
+    background: var(--border);
+    margin-top: 28px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .countdown-fill {
+    height: 100%;
+    background: var(--accent);
+    width: 100%;
+    transform-origin: left;
+    transition: transform linear;
+    box-shadow: 0 0 8px var(--accent);
+  }
+
+  .countdown-text {
+    font-size: 10px;
+    color: var(--text2);
+    text-align: right;
+    margin-top: 6px;
+    letter-spacing: 1px;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <div class="logo">HMA<span>SIGNAL</span></div>
+    <div class="header-right">
+      <div class="status-dot">
+        <div class="dot"></div>
+        CANLI
+      </div>
+      <div id="last-update">--:--:--</div>
+      <button class="refresh-btn" onclick="fetchData()">YENİLE</button>
+    </div>
+  </header>
+
+  <div class="strategy-bar">
+    <span class="badge">HMA 13/30</span>
+    <span class="badge">3DK TREND</span>
+    <span class="badge">1DK GİRİŞ</span>
+    <span class="badge">HYPERLIQUID</span>
+  </div>
+
+  <div id="cards" class="cards-grid">
+    <div class="loading">VERİ YÜKLENİYOR</div>
+  </div>
+
+  <div class="log-section">
+    <div class="log-title">SİNYAL GEÇMİŞİ</div>
+    <div id="log-list" class="log-list">
+      <div class="log-empty">Henüz sinyal oluşmadı...</div>
+    </div>
+  </div>
+
+  <div class="countdown-bar">
+    <div class="countdown-fill" id="countdown-fill"></div>
+  </div>
+  <div class="countdown-text" id="countdown-text">60 saniyede yenilenecek</div>
+
+</div>
+
+<script>
+  const signalLog = [];
+  let countdown = 60;
+  let countdownTimer;
+
+  function formatPrice(price) {
+    if (price > 1000) return price.toLocaleString('en', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    if (price > 1)    return price.toFixed(4);
+    return price.toFixed(6);
+  }
+
+  function drawSparkline(canvas, prices, hma13, hma30) {
+    const ctx = canvas.getContext('2d');
+    canvas.width = canvas.offsetWidth || 220;
+    canvas.height = 40;
+    const w = canvas.width, h = canvas.height;
+    ctx.clearRect(0, 0, w, h);
+
+    const allVals = [...prices, ...hma13, ...hma30];
+    const mn = Math.min(...allVals), mx = Math.max(...allVals);
+    const range = mx - mn || 1;
+    const x = (i, arr) => (i / (arr.length - 1)) * w;
+    const y = v => h - ((v - mn) / range) * (h - 4) - 2;
+
+    const drawLine = (data, color, width) => {
+      ctx.beginPath();
+      ctx.strokeStyle = color;
+      ctx.lineWidth = width;
+      data.forEach((v, i) => i === 0 ? ctx.moveTo(x(i, data), y(v)) : ctx.lineTo(x(i, data), y(v)));
+      ctx.stroke();
+    };
+
+    // Area fill
+    ctx.beginPath();
+    prices.forEach((v, i) => i === 0 ? ctx.moveTo(x(i, prices), y(v)) : ctx.lineTo(x(i, prices), y(v)));
+    ctx.lineTo(w, h); ctx.lineTo(0, h); ctx.closePath();
+    const grad = ctx.createLinearGradient(0, 0, 0, h);
+    grad.addColorStop(0, 'rgba(0,212,255,0.15)');
+    grad.addColorStop(1, 'rgba(0,212,255,0)');
+    ctx.fillStyle = grad;
+    ctx.fill();
+
+    drawLine(prices, '#00d4ff', 1.5);
+    drawLine(hma13,  '#00ff88', 1);
+    drawLine(hma30,  '#ff3355', 1);
+  }
+
+  function getSinyalClass(sinyal) {
+    if (sinyal === 'AL') return 'sinyal-AL';
+    if (sinyal === 'SAT') return 'sinyal-SAT';
+    if (sinyal.includes('ZAYIF')) return 'sinyal-ZAYIF';
+    return 'sinyal-BEKLE';
+  }
+
+  function getCardClass(sinyal, guc) {
+    if (sinyal === 'AL' && guc === 'guclu') return 'signal-al';
+    if (sinyal === 'SAT' && guc === 'guclu') return 'signal-sat';
+    if (sinyal.includes('ZAYIF')) return 'signal-zayif';
+    return '';
+  }
+
+  function updateLog(data) {
+    data.forEach(item => {
+      if (item.sinyal !== 'BEKLE') {
+        const existing = signalLog.find(l => l.symbol === item.symbol && l.zaman === item.zaman);
+        if (!existing) {
+          signalLog.unshift({ symbol: item.symbol, sinyal: item.sinyal, fiyat: item.fiyat, zaman: item.zaman });
+          if (signalLog.length > 20) signalLog.pop();
+        }
+      }
+    });
+
+    const logEl = document.getElementById('log-list');
+    if (signalLog.length === 0) {
+      logEl.innerHTML = '<div class="log-empty">Henüz sinyal oluşmadı...</div>';
+      return;
+    }
+    logEl.innerHTML = signalLog.map(l => `
+      <div class="log-item ${l.sinyal.includes('AL') ? 'al' : 'sat'}">
+        <span class="log-time">${l.zaman}</span>
+        <span class="log-symbol">${l.symbol}</span>
+        <span class="log-signal ${l.sinyal.includes('AL') ? 'al' : 'sat'}">${l.sinyal}</span>
+        <span class="log-price">${formatPrice(l.fiyat)}</span>
+      </div>
+    `).join('');
+  }
+
+  function renderCards(data) {
+    const grid = document.getElementById('cards');
+    grid.innerHTML = data.map((item, idx) => `
+      <div class="card ${getCardClass(item.sinyal, item.sinyal_guc)}" style="animation-delay:${idx * 0.08}s">
+        <div class="card-header">
+          <div class="symbol">${item.symbol}</div>
+          <div class="sinyal-badge ${getSinyalClass(item.sinyal)}">${item.sinyal}</div>
+        </div>
+        <div class="price-row">
+          <div class="price">$${formatPrice(item.fiyat)}</div>
+          <div class="price-change ${item.degisim >= 0 ? 'up' : 'down'}">
+            ${item.degisim >= 0 ? '▲' : '▼'} ${Math.abs(item.degisim).toFixed(4)}%
+          </div>
+        </div>
+        <div class="metrics">
+          <div class="metric">
+            <div class="metric-label">HMA 13</div>
+            <div class="metric-value">${formatPrice(item.hma13)}</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">HMA 30</div>
+            <div class="metric-value">${formatPrice(item.hma30)}</div>
+          </div>
+        </div>
+        <div class="trend-row">
+          <span class="trend-label">3DK TREND:</span>
+          <span class="${item.trend_3m === 'YUKARI' ? 'trend-up' : 'trend-down'}">
+            ${item.trend_3m === 'YUKARI' ? '▲ YUKARI' : '▼ ASAGI'}
+          </span>
+        </div>
+        <canvas class="sparkline" id="spark-${item.symbol}"></canvas>
+      </div>
+    `).join('');
+
+    // Draw sparklines after render
+    setTimeout(() => {
+      data.forEach(item => {
+        const canvas = document.getElementById(`spark-${item.symbol}`);
+        if (canvas && item.grafik) {
+          drawSparkline(canvas, item.grafik, item.hma13_grafik, item.hma30_grafik);
+        }
+      });
+    }, 100);
+  }
+
+  function startCountdown() {
+    clearInterval(countdownTimer);
+    countdown = 60;
+    const fill = document.getElementById('countdown-fill');
+    const text = document.getElementById('countdown-text');
+    fill.style.transform = 'scaleX(1)';
+    fill.style.transition = 'none';
+
+    setTimeout(() => {
+      fill.style.transition = 'transform 60s linear';
+      fill.style.transform = 'scaleX(0)';
+    }, 100);
+
+    countdownTimer = setInterval(() => {
+      countdown--;
+      text.textContent = `${countdown} saniyede yenilenecek`;
+      if (countdown <= 0) {
+        clearInterval(countdownTimer);
+        fetchData();
+      }
+    }, 1000);
+  }
+
+  async function fetchData() {
+    try {
+      const res = await fetch('/api/data');
+      const json = await res.json();
+      document.getElementById('last-update').textContent = json.zaman;
+      renderCards(json.data);
+      updateLog(json.data);
+      startCountdown();
+    } catch (e) {
+      console.error('Veri alınamadı:', e);
+    }
+  }
+
+  // İlk yükleme
+  fetchData();
+</script>
+</body>
+</html>
